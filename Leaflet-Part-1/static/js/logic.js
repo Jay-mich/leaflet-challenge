@@ -1,100 +1,67 @@
 // Store our API endpoint inside queryUrl
-var queryUrl = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson";
-// create map
-var myMap = L.map("map", {
-    center: [37.7749, -122.4194],
-    zoom: 5
-  });
-  
-  // create layer groups
-  L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
-    attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
-    maxZoom: 18,
-    id: "mapbox.streets",
-    accessToken: "pk.eyJ1IjoiY2hpYW15YzA5ODciLCJhIjoiY2swdzUxb3I2MGRiMzNpbnliN293OXBteiJ9.at8rk5Trv5oNH1dD2E9EAw"
-  }).addTo(myMap);
+// var url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson";
+// Initialize the map
+var map = L.map('map').setView([37.0902, -95.7129], 4);
 
-  
-//  GET color radius call to the query URL
-d3.json(queryUrl, function(data) {
-  function styleInfo(feature) {
-    return {
-      opacity: 1,
-      fillOpacity: 1,
-      fillColor: getColor(feature.properties.mag),
-      color: "#000000",
-      radius: getRadius(feature.properties.mag),
-      stroke: true,
-      weight: 0.5
-    };
-  }
-  // set different color from magnitude
-    function getColor(magnitude) {
-    switch (true) {
-    case magnitude > 5:
-      return "#ea2c2c";
-    case magnitude > 4:
-      return "#ea822c";
-    case magnitude > 3:
-      return "#ee9c00";
-    case magnitude > 2:
-      return "#eecc00";
-    case magnitude > 1:
-      return "#d4ee00";
-    default:
-      return "#98ee00";
-    }
-  }
-  // set radiuss from magnitude
-    function getRadius(magnitude) {
-    if (magnitude === 0) {
-      return 1;
-    }
+// Add the tile layer to the map
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+    maxZoom: 18
+}).addTo(map);
 
-    return magnitude * 4;
-  }
-    // GeoJSON layer
-    L.geoJson(data, {
-      // Maken cricles
-      pointToLayer: function(feature, latlng) {
-        return L.circleMarker(latlng);
-      },
-      // circle style
-      style: styleInfo,
-      // popup for each marker
-      onEachFeature: function(feature, layer) {
-        layer.bindPopup("Magnitude: " + feature.properties.mag + "<br>Location: " + feature.properties.place);
-      }
-    }).addTo(myMap);
-  
-    // an object legend
-    var legend = L.control({
-      position: "bottomright"
+// Load earthquake data
+fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson')
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        console.log(data);
+
+        // Define a function to get the marker color based on depth
+        function getMarkerColor(depth) {
+            return depth > 90 ? '#0000CD' :
+                   depth > 70 ? '#00FFFF' :
+                   depth > 50 ? '#ADFF2F' :
+                   depth > 30 ? '#FFD700' :
+                   depth > 10 ? '#FF4500' :
+                                '#8B0000';
+        }
+
+        // Define a function to get the marker size based on magnitude
+        function getMarkerSize(magnitude) {
+            return magnitude * 5;
+        }
+
+        // Add markers and popups
+        L.geoJSON(data, {
+            pointToLayer: function(feature, latlng) {
+                return L.circleMarker(latlng, {
+                    radius: getMarkerSize(feature.properties.mag),
+                    fillColor: getMarkerColor(feature.geometry.coordinates[2]),
+                    color: '#000',
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).bindPopup(`<b>${feature.properties.place}</b><br>${new Date(feature.properties.time).toLocaleString()}<br><b>Magnitude:</b> ${feature.properties.mag}<br><b>Depth:</b> ${feature.geometry.coordinates[2]} km`);
+            }
+        }).addTo(map);
+
+        // Create legend
+        var legend = L.control({ position: 'bottomright' });
+
+        legend.onAdd = function(map) {
+            var div = L.DomUtil.create('div', 'legend');
+            var labels = ['<strong>Depth</strong>'];
+            var colors = ['#8B0000', '#FF4500', '#FFD700', '#ADFF2F', '#00FFFF', '#0000CD'];
+            var depths = ['-10 to 10 km', '10 to 30 km', '30 to 50 km', '50 to 70 km', '70 to 90 km', '>90 km'];
+            for (var i = 0; i < colors.length; i++) {
+                div.innerHTML += '<i class="circle" style="background:' + colors[i] + '"></i> ' + depths[i] + '<br>';
+            }
+            div.innerHTML = labels.join('<br>') + div.innerHTML;
+            return div;
+        };
+
+        legend.addTo(map);
+
     });
-  
-    // details for the legend
-    legend.onAdd = function() {
-      var div = L.DomUtil.create("div", "info legend");
-  
-      var grades = [0, 1, 2, 3, 4, 5];
-      var colors = [
-        "#98ee00",
-        "#d4ee00",
-        "#eecc00",
-        "#ee9c00",
-        "#ea822c",
-        "#ea2c2c"
-      ];
-  
-      // Looping through
-      for (var i = 0; i < grades.length; i++) {
-        div.innerHTML +=
-          "<i style='background: " + colors[i] + "'></i> " +
-          grades[i] + (grades[i + 1] ? "&ndash;" + grades[i + 1] + "<br>" : "+");
-      }
-      return div;
-    };
-  
-    //Add legend to map.
-    legend.addTo(myMap);
-  });
+
