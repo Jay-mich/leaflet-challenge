@@ -22,9 +22,9 @@ fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojs
             return depth > 90 ? '#0000CD' :
                    depth > 70 ? '#00FFFF' :
                    depth > 50 ? '#ADFF2F' :
-                   depth > 30 ? '#FFD700' :
+                   depth > 30 ? '#8B0000' :
                    depth > 10 ? '#FF4500' :
-                                '#8B0000';
+                                '#FFD700';
         }
 
         // Define a function to get the marker size based on magnitude
@@ -46,13 +46,13 @@ fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojs
             }
         }).addTo(map);
 
-        // Create legend
+        // Create a legend
         var legend = L.control({ position: 'bottomright' });
 
         legend.onAdd = function(map) {
             var div = L.DomUtil.create('div', 'legend');
             var labels = ['<strong>Depth</strong>'];
-            var colors = ['#8B0000', '#FF4500', '#FFD700', '#ADFF2F', '#00FFFF', '#0000CD'];
+            var colors = ['#FFD700', '#FF4500', '#8B0000', '#ADFF2F', '#00FFFF', '#0000CD'];
             var depths = ['-10 to 10 km', '10 to 30 km', '30 to 50 km', '50 to 70 km', '70 to 90 km', '>90 km'];
             for (var i = 0; i < colors.length; i++) {
                 div.innerHTML += '<i class="circle" style="background:' + colors[i] + '"></i> ' + depths[i] + '<br>';
